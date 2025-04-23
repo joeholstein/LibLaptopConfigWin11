@@ -14,10 +14,18 @@ This repository is licensed under the MIT License. See the [LICENSE](LICENSE) fi
 
 ## Scripts
 
-Use this to run:
+Copy&Paste this as admin to run:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File "$env:USERPROFILE\Desktop\scriptname.ps1"
+powershell -ExecutionPolicy Bypass -File ".\FirstSetup.ps1"
+```
+
+```powershell
+powershell -ExecutionPolicy Bypass -File ".\Install_Apps.ps1"
+```
+
+```powershell
+powershell -ExecutionPolicy Bypass -File ".\CleanUpUser.ps1"
 ```
 
 ### CleanUpUser.ps1

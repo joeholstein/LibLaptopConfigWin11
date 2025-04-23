@@ -400,8 +400,8 @@ if (Test-Path $pwshPath) {
     Write-Host "PowerShell 7 is installed." -ForegroundColor Green
 } else {
     Write-Host "PowerShell 7 is not installed. Downloading and installing..." -ForegroundColor Yellow
-    $installerUrl = "https://github.com/PowerShell/PowerShell/releases/latest/download/PowerShell-7.3.6-win-x64.msi"
-    $installerPath = "$env:TEMP\PowerShell-7.3.6-win-x64.msi"
+    $installerUrl = "https://github.com/PowerShell/PowerShell/releases/download/v7.5.0/PowerShell-7.5.0-win-x64.msi"
+    $installerPath = "$env:TEMP\PowerShell-7.5.0-win-x64.msi"
     Invoke-WebRequest -Uri $installerUrl -OutFile $installerPath -UseBasicParsing
     Start-Process msiexec.exe -ArgumentList "/i $installerPath /quiet /norestart" -Wait
     if (Test-Path $pwshPath) {
@@ -412,12 +412,16 @@ if (Test-Path $pwshPath) {
     }
 }
 
-# --- Set PowerShell 7 as the default ---
+# --- Set PowerShell 7 as the default shell ---
 Write-Host "Setting PowerShell 7 as the default shell..." -ForegroundColor White
-$registryPath = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\powershell.exe"
-New-Item -Path $registryPath -Force | Out-Null
-Set-ItemProperty -Path $registryPath -Name "Debugger" -Value $pwshPath
-Write-Host "PowerShell 7 set as the default shell." -ForegroundColor Green
+$pwshPath = "C:\Program Files\PowerShell\7\pwsh.exe"
+if (Test-Path $pwshPath) {
+    # Update the PATH environment variable to prioritize PowerShell 7
+    [Environment]::SetEnvironmentVariable("Path", "$pwshPath;$env:Path", [EnvironmentVariableTarget]::Machine)
+    Write-Host "PowerShell 7 added to PATH." -ForegroundColor Green
+} else {
+    Write-Host "PowerShell 7 not found. Skipping default shell configuration." -ForegroundColor Yellow
+}
 
 # --- Disable PowerShell 7 Telemetry ---
 Write-Host "Disabling PowerShell 7 telemetry..." -ForegroundColor White
