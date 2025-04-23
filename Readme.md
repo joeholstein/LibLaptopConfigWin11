@@ -55,16 +55,3 @@ winget upgrade --all --silent --accept-source-agreements --accept-package-agreem
 ### Documentation
 
 - [Winget Documentation](https://learn.microsoft.com/en-us/windows/package-manager/winget/)
-
-### WinUtil by ChrisTitus.com
-
-WinUtil: A PowerShell script that provides various functions and features for Windows systems.
-
-```powershell
-irm "https://christitus.com/win" | iex
-```
-
-This is a utility script that provides various functions and features for Windows systems.
-It includes system optimization, application management, and other useful features.
-You can find more information about WinUtil at:
-<https://christitus.com/winutil/>
