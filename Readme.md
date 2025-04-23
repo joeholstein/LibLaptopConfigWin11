@@ -1,6 +1,16 @@
 # Laptop Configuration Scripts Bundle
 
-This repository contains various PowerShell scripts and notes which I'm using to configure and manage a group of Windows laptops.  I've ommitted endpoint protection and policies for security reasons.
+This repository contains various PowerShell scripts and notes which I'm using to configure and manage a group of Windows laptops. I've omitted endpoint protection and policies for security reasons.
+
+## Disclaimer
+
+**WARNING:**  
+These scripts modify system settings, install or remove applications, and perform various system optimizations. **Use them at your own risk.**  
+The author is not responsible for any damage, data loss, or system instability that may occur as a result of using these scripts. Always ensure you have complete backups and fully understand the changes being made before executing them. Contributions, issues, or modifications are welcome, but please be cautious in production environments.
+
+## License
+
+This repository is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
 ## Scripts
 
