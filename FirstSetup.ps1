@@ -390,8 +390,54 @@ foreach ($user in $users) {
 Write-Host "User-specific settings have been updated." -ForegroundColor Green
 #endregion
 
+#region VERIFY POWERSHELL 7 INSTALLATION AND CONFIGURATION
+Write-Host "`n[SECTION 6] VERIFY POWERSHELL 7 INSTALLATION AND CONFIGURATION..." -ForegroundColor Yellow
+
+# --- Check if PowerShell 7 is installed ---
+Write-Host "Checking if PowerShell 7 is installed..." -ForegroundColor White
+$pwshPath = "C:\Program Files\PowerShell\7\pwsh.exe"
+if (Test-Path $pwshPath) {
+    Write-Host "PowerShell 7 is installed." -ForegroundColor Green
+} else {
+    Write-Host "PowerShell 7 is not installed. Downloading and installing..." -ForegroundColor Yellow
+    $installerUrl = "https://github.com/PowerShell/PowerShell/releases/latest/download/PowerShell-7.3.6-win-x64.msi"
+    $installerPath = "$env:TEMP\PowerShell-7.3.6-win-x64.msi"
+    Invoke-WebRequest -Uri $installerUrl -OutFile $installerPath -UseBasicParsing
+    Start-Process msiexec.exe -ArgumentList "/i $installerPath /quiet /norestart" -Wait
+    if (Test-Path $pwshPath) {
+        Write-Host "PowerShell 7 installed successfully." -ForegroundColor Green
+    } else {
+        Write-Host "Failed to install PowerShell 7." -ForegroundColor Red
+        return
+    }
+}
+
+# --- Set PowerShell 7 as the default ---
+Write-Host "Setting PowerShell 7 as the default shell..." -ForegroundColor White
+$registryPath = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\powershell.exe"
+New-Item -Path $registryPath -Force | Out-Null
+Set-ItemProperty -Path $registryPath -Name "Debugger" -Value $pwshPath
+Write-Host "PowerShell 7 set as the default shell." -ForegroundColor Green
+
+# --- Disable PowerShell 7 Telemetry ---
+Write-Host "Disabling PowerShell 7 telemetry..." -ForegroundColor White
+$telemetryConfigPath = "$env:APPDATA\powershell\powershell.config.json"
+if (-Not (Test-Path -Path $telemetryConfigPath)) {
+    New-Item -ItemType File -Path $telemetryConfigPath -Force | Out-Null
+}
+$telemetryConfig = @{
+    "PSCoreTelemetry" = @{
+        "Enabled" = $false
+    }
+} | ConvertTo-Json -Depth 10
+Set-Content -Path $telemetryConfigPath -Value $telemetryConfig -Force
+Write-Host "PowerShell 7 telemetry disabled." -ForegroundColor Green
+
+Write-Host "[POWERSHELL 7 CONFIGURATION COMPLETED]" -ForegroundColor Cyan
+#endregion
+
 #region FINAL CLEANUP ACTIONS
-Write-Host "`n[SECTION 6] FINAL CLEANUP ACTIONS..." -ForegroundColor Yellow
+Write-Host "`n[SECTION 7] FINAL CLEANUP ACTIONS..." -ForegroundColor Yellow
 
 # --- Clear Browser Data for Edge and IE ---
 Write-Host "Clearing browser cache, cookies and history (Edge & IE)..." -ForegroundColor White
