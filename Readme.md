@@ -1,4 +1,4 @@
-# Laptop Configuration Scripts Bundle
+# Lib Laptop Configuration for Windows 11
 
 This repository contains various PowerShell scripts and notes which I'm using to configure and manage a group of Windows laptops. I've omitted endpoint protection and policies for security reasons.
 
