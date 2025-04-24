@@ -522,7 +522,7 @@ try {
 # --- Clear Clipboard Data ---
 Write-Host "Clearing clipboard data..." -ForegroundColor White
 try {
-    Set-Clipboard -Value ""  # Use an empty string to clear the clipboard
+    Set-Clipboard -Value "."  # Use an empty string to clear the clipboard
     Write-Host "Cleared clipboard data."
     Add-Content -Path $successLogFile -Value "Cleared clipboard data."
 } catch {
