@@ -25,30 +25,40 @@ try {
 
 # 2. Clear Recent File History
 try {
-    if (Test-Path "$env:APPDATA\Microsoft\Windows\Recent\*") {
-        Remove-Item -Path "$env:APPDATA\Microsoft\Windows\Recent\*" -Recurse -Force
+    # Check and clear recent files
+    $recentPath = "$env:APPDATA\Microsoft\Windows\Recent\*"
+    if (Test-Path $recentPath) {
+        Remove-Item -Path $recentPath -Recurse -Force
         Write-Host "Cleared recent files."
         Write-Log "Cleared recent files."
     } else {
         Write-Host "Recent files path not found. Skipping."
         Write-Log "Recent files path not found. Skipping."
     }
-    Remove-Item -Path "$env:APPDATA\Microsoft\Windows\Recent Items\*" -Recurse -Force
-    try {
-        if (Test-Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\RunMRU") {
-            Clear-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\RunMRU" -Name "*" -ErrorAction SilentlyContinue
-            Write-Host "Cleared recent file history."
-            Write-Log "Cleared recent file history."
-        } else {
-            Write-Host "RunMRU registry key not found. Skipping."
-            Write-Log "RunMRU registry key not found. Skipping."
-        }
-    } catch {
-        Write-Host "Error clearing recent file history: $_" -ForegroundColor Red
-        Write-Log "Error clearing recent file history: $_"
+
+    # Check and clear recent items
+    $recentItemsPath = "$env:APPDATA\Microsoft\Windows\Recent Items\*"
+    if (Test-Path $recentItemsPath) {
+        Remove-Item -Path $recentItemsPath -Recurse -Force
+        Write-Host "Cleared recent items."
+        Write-Log "Cleared recent items."
+    } else {
+        Write-Host "Recent items path not found. Skipping."
+        Write-Log "Recent items path not found. Skipping."
+    }
+
+    # Check and clear RunMRU registry keys
+    if (Test-Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\RunMRU") {
+        Clear-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\RunMRU" -Name "*" -ErrorAction SilentlyContinue
+        Write-Host "Cleared recent file history from RunMRU."
+        Write-Log "Cleared recent file history from RunMRU."
+    } else {
+        Write-Host "RunMRU registry key not found. Skipping."
+        Write-Log "RunMRU registry key not found. Skipping."
     }
 } catch {
-    Write-Host "Error clearing recent file history."
+    Write-Host "Error clearing recent file history: $_" -ForegroundColor Red
+    Write-Log "Error clearing recent file history: $_"
 }
 
 # 3. Clear PowerShell History
