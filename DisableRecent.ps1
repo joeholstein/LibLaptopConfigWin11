@@ -14,10 +14,17 @@ function Set-RegistryValue {
         if (-not (Test-Path $Path)) {
             New-Item -Path $Path -Force | Out-Null
         }
-        Set-ItemProperty -Path $Path -Name $Name -Value ([Convert]::ChangeType($Value, [Type]::GetType("System.$Type"))) -Force
+
+        # Handle DWord type explicitly
+        if ($Type -eq "DWord") {
+            Set-ItemProperty -Path $Path -Name $Name -Value ([int]$Value) -Force
+        } else {
+            Set-ItemProperty -Path $Path -Name $Name -Value $Value -Force
+        }
+
         Write-Host "Set $Name to $Value in $Path" -ForegroundColor Green
     } catch {
-        Write-Host "Error setting $Name in $Path: $_" -ForegroundColor Red
+        Write-Host "Error setting $Name in $Path $_" -ForegroundColor Red
     }
 }
 
