@@ -4,6 +4,11 @@
 #region PREP
 Write-Host "[STARTING SETUP SCRIPT...]" -ForegroundColor Cyan
 $ErrorActionPreference = "Continue"
+
+if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")) {
+    Write-Host "This script must be run as Administrator. Exiting..." -ForegroundColor Red
+    exit 1
+}
 #endregion
 
 #region APPLICATION REMOVAL
@@ -293,7 +298,9 @@ Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\P
 
 # --- Disable Toast Notifications ---
 Write-Host "Disabling toast notifications..." -ForegroundColor White
-New-Item -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\PushNotifications" -Force | Out-Null
+if (-not (Test-Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\PushNotifications")) {
+    New-Item -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\PushNotifications" -Force | Out-Null
+}
 Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\PushNotifications" -Name ToastEnabled -Value 0
 #endregion
 
@@ -347,7 +354,11 @@ Write-Host "Screen timeout settings have been updated." -ForegroundColor Green
 # --- Configure Per-User Settings ---
 $darkRed = "139 0 0"         # For Admin
 $seaFoam = "159 226 191"      # For Other Users
-$users = Get-ChildItem "HKU:\"
+if (Get-PSDrive -Name HKU -ErrorAction SilentlyContinue) {
+    $users = Get-ChildItem "HKU:\"
+} else {
+    Write-Host "HKU drive not found. Skipping user-specific settings." -ForegroundColor Yellow
+}
 foreach ($user in $users) {
     $userSID = $user.PSChildName
     if ($userSID -match "S-\d-\d{2}-\d{6,}-\d{4,}") {
@@ -443,11 +454,14 @@ Write-Host "[POWERSHELL 7 CONFIGURATION COMPLETED]" -ForegroundColor Cyan
 #region FINAL CLEANUP ACTIONS
 Write-Host "`n[SECTION 7] FINAL CLEANUP ACTIONS..." -ForegroundColor Yellow
 
+$successLogFile = "$env:TEMP\SetupScriptSuccess.log"
+
 # --- Clear Browser Data for Edge and IE ---
 Write-Host "Clearing browser cache, cookies and history (Edge & IE)..." -ForegroundColor White
 try {
     RunDll32.exe InetCpl.cpl,ClearMyTracksByProcess 255
     Write-Host "Cleared browser data."
+    Add-Content -Path $successLogFile -Value "Cleared browser data."
 } catch {
     Write-Host "Error clearing browser data."
 }
@@ -455,8 +469,24 @@ try {
 # --- Clear Recent File History ---
 Write-Host "Clearing recent file history..." -ForegroundColor White
 try {
-    Remove-Item -Path "$env:APPDATA\Microsoft\Windows\Recent\*" -Recurse -Force
-    Remove-Item -Path "$env:APPDATA\Microsoft\Windows\Recent Items\*" -Recurse -Force
+    $recentPath = "$env:APPDATA\Microsoft\Windows\Recent\*"
+    $recentItemsPath = "$env:APPDATA\Microsoft\Windows\Recent Items\*"
+    if (Test-Path $recentPath) {
+        Remove-Item -Path $recentPath -Recurse -Force
+        Write-Host "Cleared recent files." -ForegroundColor Green
+        Add-Content -Path $successLogFile -Value "Cleared recent files: $recentPath"
+    } else {
+        Write-Host "Recent files path not found. Skipping." -ForegroundColor Yellow
+        Add-Content -Path "$env:TEMP\SetupScriptErrors.log" -Value "Recent files path not found. Skipping."
+    }
+    if (Test-Path $recentItemsPath) {
+        Remove-Item -Path $recentItemsPath -Recurse -Force
+        Write-Host "Cleared recent items."
+        Add-Content -Path $successLogFile -Value "Cleared recent items: $recentItemsPath"
+    } else {
+        Write-Host "Recent items path not found. Skipping." -ForegroundColor Yellow
+        Add-Content -Path "$env:TEMP\SetupScriptErrors.log" -Value "Recent items path not found. Skipping."
+    }
     Get-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\RunMRU" | ForEach-Object {
         $_.PSObject.Properties | ForEach-Object {
             if ($_.Name -ne "MRUList") {
@@ -465,8 +495,11 @@ try {
         }
     }
     Write-Host "Cleared recent file history."
+    Add-Content -Path $successLogFile -Value "Cleared recent file history."
 } catch {
-    Write-Host "Error clearing recent file history."
+    Write-Host "Error clearing recent file history: $_" -ForegroundColor Red
+    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+    Add-Content -Path "$env:TEMP\SetupScriptErrors.log" -Value "[$timestamp] Error clearing recent file history: $_"
 }
 
 # --- Clear PowerShell History ---
@@ -476,9 +509,14 @@ try {
     if (Test-Path $psHistoryPath) {
         Remove-Item -Path $psHistoryPath -Force
         Write-Host "Cleared PowerShell command history."
+        Add-Content -Path $successLogFile -Value "Cleared PowerShell command history."
+    } else {
+        Write-Host "PowerShell history file not found. Skipping." -ForegroundColor Yellow
+        Add-Content -Path "$env:TEMP\SetupScriptErrors.log" -Value "PowerShell history file not found. Skipping."
     }
 } catch {
-    Write-Host "Error clearing PowerShell history."
+    Write-Host "Error clearing PowerShell history: $_" -ForegroundColor Red
+    Add-Content -Path "$env:TEMP\SetupScriptErrors.log" -Value "Error clearing PowerShell history: $_"
 }
 
 # --- Clear Clipboard Data ---
@@ -486,28 +524,51 @@ Write-Host "Clearing clipboard data..." -ForegroundColor White
 try {
     Set-Clipboard -Value ""
     Write-Host "Cleared clipboard data."
+    Add-Content -Path $successLogFile -Value "Cleared clipboard data."
 } catch {
-    Write-Host "Error clearing clipboard."
+    Write-Host "Error clearing clipboard: $_" -ForegroundColor Red
+    Add-Content -Path "$env:TEMP\SetupScriptErrors.log" -Value "Error clearing clipboard: $_"
 }
 
 # --- Clear Temporary Files ---
 Write-Host "Clearing temporary files..." -ForegroundColor White
 try {
-    Remove-Item -Path "$env:TEMP\*" -Recurse -Force
+    Get-ChildItem -Path "$env:TEMP\*" -Recurse -Force | Remove-Item -Force -ErrorAction SilentlyContinue
     Write-Host "Cleared temporary files."
+    Add-Content -Path $successLogFile -Value "Cleared temporary files."
 } catch {
-    Write-Host "Error clearing temporary files."
+    Write-Host "Error clearing temporary files: $_" -ForegroundColor Red
+    Add-Content -Path "$env:TEMP\SetupScriptErrors.log" -Value "Error clearing temporary files: $_"
 }
 
 # --- Clear Windows Prefetch Files ---
 Write-Host "Clearing Windows prefetch files..." -ForegroundColor White
 try {
-    Remove-Item -Path "C:\Windows\Prefetch\*" -Recurse -Force
-    Write-Host "Cleared Windows prefetch files."
+    if (Test-Path "C:\Windows\Prefetch") {
+        Remove-Item -Path "C:\Windows\Prefetch\*" -Recurse -Force
+        Write-Host "Cleared Windows prefetch files."
+        Add-Content -Path $successLogFile -Value "Cleared Windows prefetch files."
+    } else {
+        Write-Host "Windows prefetch folder not found. Skipping." -ForegroundColor Yellow
+        Add-Content -Path "$env:TEMP\SetupScriptErrors.log" -Value "Windows prefetch folder not found. Skipping."
+    }
 } catch {
-    Write-Host "Error clearing Windows prefetch files."
+    Write-Host "Error clearing Windows prefetch files: $_" -ForegroundColor Red
+    Add-Content -Path "$env:TEMP\SetupScriptErrors.log" -Value "Error clearing Windows prefetch files: $_"
 }
+
 Write-Host "[FINAL CLEANUP ACTIONS COMPLETED]" -ForegroundColor Green
+#endregion
+
+#region SUMMARY REPORT
+Write-Host "`n[SUMMARY REPORT]" -ForegroundColor Cyan
+$logFile = "$env:TEMP\SetupScriptErrors.log"
+if (Test-Path $logFile) {
+    Write-Host "The following issues were encountered during the script execution:" -ForegroundColor Yellow
+    Get-Content $logFile | ForEach-Object { Write-Host $_ -ForegroundColor Red }
+} else {
+    Write-Host "No errors or skipped operations were logged. Script executed successfully." -ForegroundColor Green
+}
 #endregion
 
 #region FINISH
