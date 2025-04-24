@@ -1,3 +1,8 @@
+# Add a switch for testing
+param (
+    [switch]$WhatIf
+)
+
 # ----------------- CLEANUP ACTIONS -----------------
 
 # Function to log messages to a file
@@ -7,11 +12,6 @@ function Write-Log {
     $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
     "$timestamp $Message" | Out-File -FilePath $logFile -Append
 }
-
-# Add a switch for testing
-param (
-    [switch]$WhatIf
-)
 
 # 1. Clear Browser Data
 # Clearing Edge and Internet Explorer browser data
