@@ -1,17 +1,30 @@
 # ----------------- CLEANUP ACTIONS -----------------
 
+# Add a switch for testing
+param (
+    [switch]$WhatIf
+)
+
 # 1. Clear Browser Data
 # Clearing Edge and Internet Explorer browser data
 try {
     RunDll32.exe InetCpl.cpl,ClearMyTracksByProcess 255  # Clear all browsing history for IE and Edge
     Write-Host "Cleared browser cache, cookies, and history (Edge & IE)."
 } catch {
-    Write-Host "Error clearing browser data."
+    Write-Host "Error clearing browser data: $_" -ForegroundColor Red
+    Write-Log "Error clearing browser data: $_"
 }
 
 # 2. Clear Recent File History
 try {
-    Remove-Item -Path "$env:APPDATA\Microsoft\Windows\Recent\*" -Recurse -Force
+    if (Test-Path "$env:APPDATA\Microsoft\Windows\Recent\*") {
+        Remove-Item -Path "$env:APPDATA\Microsoft\Windows\Recent\*" -Recurse -Force
+        Write-Host "Cleared recent files."
+        Write-Log "Cleared recent files."
+    } else {
+        Write-Host "Recent files path not found. Skipping."
+        Write-Log "Recent files path not found. Skipping."
+    }
     Remove-Item -Path "$env:APPDATA\Microsoft\Windows\Recent Items\*" -Recurse -Force
     Clear-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\RunMRU" -Name "*"
     Write-Host "Cleared recent file history."
@@ -32,18 +45,31 @@ try {
 
 # 4. Clear Clipboard
 try {
-    Set-Clipboard -Value ""
+    Clear-Clipboard
     Write-Host "Cleared clipboard data."
+    Write-Log "Cleared clipboard data."
 } catch {
-    Write-Host "Error clearing clipboard."
+    Write-Host "Error clearing clipboard: $_" -ForegroundColor Red
+    Write-Log "Error clearing clipboard: $_"
 }
 
 # 5. Clear Temp Files
 try {
-    Remove-Item -Path "$env:TEMP\*" -Recurse -Force
-    Write-Host "Cleared temporary files."
+    if (-not (Test-Path "$env:TEMP")) {
+        Write-Host "TEMP directory not found. Skipping temporary file cleanup." -ForegroundColor Yellow
+        Write-Log "TEMP directory not found. Skipping temporary file cleanup."
+    } else {
+        if ($WhatIf) {
+            Remove-Item -Path "$env:TEMP\*" -Recurse -Force -WhatIf
+        } else {
+            Remove-Item -Path "$env:TEMP\*" -Recurse -Force
+        }
+        Write-Host "Cleared temporary files."
+        Write-Log "Cleared temporary files."
+    }
 } catch {
-    Write-Host "Error clearing temporary files."
+    Write-Host "Error clearing temporary files: $_" -ForegroundColor Red
+    Write-Log "Error clearing temporary files: $_"
 }
 
 # 6. Clear Windows Prefetch Files
@@ -56,3 +82,5 @@ try {
 
 # Final message to indicate cleanup is complete
 Write-Host "System cleanup completed."
+Write-Host "`nCleanup completed. Check the log file for details: $logFile" -ForegroundColor Green
+Write-Log "Cleanup completed."
