@@ -31,20 +31,22 @@ function Install-Or-UpgradeApp {
     Write-Log "`nChecking $AppId..."
 
     try {
-        $installed = winget list --id $AppId -e | Select-String $AppId
+        # Wrap the AppId in double quotes to handle special characters
+        $installed = winget list --id "`"$AppId`"" -e | Select-String $AppId
 
         if ($installed) {
             Write-Log "$AppId is already installed. Attempting to upgrade..."
-            winget upgrade --id $AppId -e --accept-package-agreements --accept-source-agreements 2>&1 | Tee-Object -FilePath $logPath -Append
+            winget upgrade --id "`"$AppId`"" -e --accept-package-agreements --accept-source-agreements 2>&1 | Tee-Object -FilePath $logPath -Append
         } else {
             Write-Log "$AppId is not installed. Installing..."
-            winget install --id $AppId -e --accept-package-agreements --accept-source-agreements 2>&1 | Tee-Object -FilePath $logPath -Append
+            winget install --id "`"$AppId`"" -e --accept-package-agreements --accept-source-agreements 2>&1 | Tee-Object -FilePath $logPath -Append
         }
     } catch {
         Write-Log "❌ Error processing ${AppId}: $_"
         Write-Log "Command that failed: winget list --id $AppId -e"
     }
 }
+
 # List of apps to install or upgrade
 $apps = @(
     "git.git",
