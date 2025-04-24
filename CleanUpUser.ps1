@@ -1,5 +1,13 @@
 # ----------------- CLEANUP ACTIONS -----------------
 
+# Function to log messages to a file
+function Write-Log {
+    param ([string]$Message)
+    $logFile = "$env:USERPROFILE\Desktop\CleanupLog.txt"
+    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+    "$timestamp $Message" | Out-File -FilePath $logFile -Append
+}
+
 # Add a switch for testing
 param (
     [switch]$WhatIf
@@ -26,8 +34,19 @@ try {
         Write-Log "Recent files path not found. Skipping."
     }
     Remove-Item -Path "$env:APPDATA\Microsoft\Windows\Recent Items\*" -Recurse -Force
-    Clear-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\RunMRU" -Name "*"
-    Write-Host "Cleared recent file history."
+    try {
+        if (Test-Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\RunMRU") {
+            Clear-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\RunMRU" -Name "*" -ErrorAction SilentlyContinue
+            Write-Host "Cleared recent file history."
+            Write-Log "Cleared recent file history."
+        } else {
+            Write-Host "RunMRU registry key not found. Skipping."
+            Write-Log "RunMRU registry key not found. Skipping."
+        }
+    } catch {
+        Write-Host "Error clearing recent file history: $_" -ForegroundColor Red
+        Write-Log "Error clearing recent file history: $_"
+    }
 } catch {
     Write-Host "Error clearing recent file history."
 }
@@ -45,7 +64,11 @@ try {
 
 # 4. Clear Clipboard
 try {
-    Clear-Clipboard
+    if (Get-Command Clear-Clipboard -ErrorAction SilentlyContinue) {
+        Clear-Clipboard
+    } else {
+        Set-Clipboard -Value "."
+    }
     Write-Host "Cleared clipboard data."
     Write-Log "Cleared clipboard data."
 } catch {
@@ -55,18 +78,9 @@ try {
 
 # 5. Clear Temp Files
 try {
-    if (-not (Test-Path "$env:TEMP")) {
-        Write-Host "TEMP directory not found. Skipping temporary file cleanup." -ForegroundColor Yellow
-        Write-Log "TEMP directory not found. Skipping temporary file cleanup."
-    } else {
-        if ($WhatIf) {
-            Remove-Item -Path "$env:TEMP\*" -Recurse -Force -WhatIf
-        } else {
-            Remove-Item -Path "$env:TEMP\*" -Recurse -Force
-        }
-        Write-Host "Cleared temporary files."
-        Write-Log "Cleared temporary files."
-    }
+    Get-ChildItem -Path "$env:TEMP\*" -Recurse -Force | Remove-Item -Force -ErrorAction SilentlyContinue
+    Write-Host "Cleared temporary files."
+    Write-Log "Cleared temporary files."
 } catch {
     Write-Host "Error clearing temporary files: $_" -ForegroundColor Red
     Write-Log "Error clearing temporary files: $_"
