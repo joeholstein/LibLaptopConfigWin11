@@ -48,7 +48,7 @@ function Install-Or-UpgradeApp {
 # List of apps to install or upgrade
 $apps = @(
     "git.git",
-    "Notepad`+`+.Notepad`+`+",
+    'Notepad++.Notepad++',
     "7zip.7zip",
     "VLC.VLC",
     "Adobe.Acrobat.Reader.64-bit",
